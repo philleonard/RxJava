@@ -190,6 +190,31 @@ public class ObservableCombineLatestTest {
     }
 
     @Test
+    public void testCombineLatest2TypesOrderInsensitive() {
+        BiFunction<String, Integer, String> combineLatestFunction = getConcatStringIntegerCombineLatestFunction();
+        BiFunction<Integer, String, String> combineLatestFunction2 = getConcatStringIntegerCombineLatestFunction2();
+
+        /* define an Observer to receive aggregated events */
+        Observer<String> observer1 = TestHelper.mockObserver();
+        Observer<String> observer2 = TestHelper.mockObserver();
+
+        Observable<String> wOrder1 = Observable.combineLatest(Observable.just("one", "two"), Observable.just(1), combineLatestFunction);
+        Observable<String> wOrder2 = Observable.combineLatest(Observable.just(1), Observable.just("one", "two"), combineLatestFunction2);
+        wOrder1.subscribe(observer1);
+        wOrder2.subscribe(observer2);
+
+        verify(observer1, never()).onError(any(Throwable.class));
+        verify(observer2, never()).onError(any(Throwable.class));
+        verify(observer1, times(1)).onComplete();
+        verify(observer2, times(1)).onComplete();
+
+        verify(observer1, times(1)).onNext("two1");
+        verify(observer1, times(0)).onNext("one1");
+        verify(observer2, times(1)).onNext("two1");
+        verify(observer2, times(0)).onNext("one1");
+    }
+
+    @Test
     public void testCombineLatest3TypesA() {
         Function3<String, Integer, int[], String> combineLatestFunction = getConcatStringIntegerIntArrayCombineLatestFunction();
 
@@ -243,6 +268,16 @@ public class ObservableCombineLatestTest {
         BiFunction<String, Integer, String> combineLatestFunction = new BiFunction<String, Integer, String>() {
             @Override
             public String apply(String s, Integer i) {
+                return getStringValue(s) + getStringValue(i);
+            }
+        };
+        return combineLatestFunction;
+    }
+
+    private BiFunction<Integer, String, String> getConcatStringIntegerCombineLatestFunction2() {
+        BiFunction<Integer, String, String> combineLatestFunction = new BiFunction<Integer, String, String>() {
+            @Override
+            public String apply(Integer i, String s) {
                 return getStringValue(s) + getStringValue(i);
             }
         };
